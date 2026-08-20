@@ -1,0 +1,38 @@
+name: Update blocklist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "27 3 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Test converter
+        run: python -m unittest discover -s tests -v
+
+      - name: Build Pi-hole list
+        run: python scripts/build_czsk_dns.py
+
+      - name: Commit an upstream change
+        run: |
+          if git diff --quiet -- easylist-czsk-pihole.txt; then
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- easylist-czsk-pihole.txt
+          git commit -m "Update Czech and Slovak Pi-hole blocklist"
+          git push
